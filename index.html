@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#FAF9F5">
 <title>今日已赚</title>
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" href="./icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="mobile-web-app-capable" content="yes">
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   :root{
@@ -60,7 +66,6 @@
   .money{display:flex;align-items:center;justify-content:center;font-size:clamp(42px,9.5vw,72px);line-height:1;font-weight:400;letter-spacing:-.01em;font-variant-numeric:tabular-nums;font-feature-settings:'tnum' 1;margin-top:14px}
   .tick{margin-top:15px;font-size:14px;color:var(--ink-3);font-variant-numeric:tabular-nums}
 
-  /* 跳动数字（odometer 滚动效果） */
   .od-cur{margin-right:.05em;font-weight:500}
   .od-d{display:inline-block;width:.62em;height:1em;overflow:hidden;text-align:center}
   .od-d.pop{animation:odPop .4s ease}
@@ -68,7 +73,6 @@
   .od-reel{display:flex;flex-direction:column;transition:transform .45s cubic-bezier(.2,.85,.25,1);will-change:transform}
   .od-reel b{display:block;height:1em;line-height:1;font-weight:inherit}
 
-  /* 趣味换算 & 发薪日 */
   .meta-line{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:12px}
   .chip{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-2);background:var(--bg-soft);border:1px solid var(--line);padding:5px 12px;border-radius:99px}
   .chip b{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
@@ -88,18 +92,51 @@
   .stat .label{font-size:11px;margin-bottom:9px}
   .stat-num{font-size:20px;font-variant-numeric:tabular-nums;letter-spacing:-.01em;font-weight:500}
 
-  .share-btn{margin:22px auto 0;display:block;padding:10px 24px;border:1px solid var(--line-2);background:var(--card);color:var(--ink-2);border-radius:99px;font-size:13.5px;cursor:pointer;transition:.15s;box-shadow:var(--shadow)}
-  .share-btn:hover{border-color:var(--accent);color:var(--accent)}
+  .action-row{display:flex;justify-content:center;gap:12px;margin-top:22px;flex-wrap:wrap}
+  .share-btn,.ghost{font-family:inherit;background:transparent;border:1px solid var(--line-2);color:var(--ink-2);padding:10px 22px;border-radius:99px;font-size:13.5px;cursor:pointer;transition:.15s;box-shadow:var(--shadow)}
+  .share-btn:hover,.ghost:hover{border-color:var(--accent);color:var(--accent)}
 
   footer{margin-top:26px;display:flex;flex-direction:column;gap:16px;align-items:center;padding-bottom:44px}
-  button{font-family:inherit;border:none;cursor:pointer}
-  .ghost{background:transparent;border:1px solid var(--line-2);color:var(--ink-2);padding:9px 20px;border-radius:99px;font-size:13px;transition:.15s}
-  .ghost:hover{border-color:var(--ink-3);color:var(--ink)}
   .howto{width:100%;max-width:560px;font-size:12px;color:var(--ink-3);text-align:center}
   .howto summary{cursor:pointer;list-style:none;user-select:none}
   .howto summary::-webkit-details-marker{display:none}
   .howto[open] summary{margin-bottom:10px}
   .howto p{line-height:1.8;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:var(--radius-s);padding:16px 18px;color:var(--ink-2)}
+
+  /* 下班庆祝 */
+  .celebration{position:fixed;left:50%;top:36%;transform:translate(-50%,-50%);background:var(--card);border:1px solid var(--line);border-radius:20px;padding:26px 44px;text-align:center;box-shadow:0 14px 44px rgba(0,0,0,.2);z-index:99;font-size:21px;line-height:1.9;color:var(--ink);pointer-events:none}
+  .celebration.show{animation:celebPop .55s cubic-bezier(.2,1.4,.3,1) forwards}
+  @keyframes celebPop{0%{opacity:0;transform:translate(-50%,-50%) scale(.6)}100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+  .celebration b{color:var(--accent);font-size:28px;font-variant-numeric:tabular-nums}
+
+  /* 明细弹层 */
+  .overlay{position:fixed;inset:0;background:rgba(28,25,23,.45);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px}
+  .modal{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:28px 26px;width:100%;max-width:420px;max-height:86vh;overflow-y:auto;position:relative;box-shadow:0 18px 60px rgba(0,0,0,.25);animation:fadeUp .3s ease}
+  .modal-close{position:absolute;top:14px;right:16px;background:none;border:none;font-size:20px;color:var(--ink-3);cursor:pointer;padding:4px}
+  .modal-close:hover{color:var(--ink)}
+  .modal h2{font-size:20px;font-weight:600;margin-bottom:4px}
+  .modal-sub{font-size:12px;color:var(--ink-3);margin-bottom:16px}
+  .drow{display:flex;justify-content:space-between;align-items:baseline;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px;gap:12px}
+  .drow .k{color:var(--ink-2);flex:none}
+  .drow .v{font-variant-numeric:tabular-nums;font-weight:500;text-align:right}
+  .drow.minus .v{color:var(--ink-2);font-weight:400}
+  .drow.total{border-top:2px solid var(--line-2);border-bottom:none;margin-top:6px;padding-top:14px;font-weight:600}
+  .drow.total .v{color:var(--accent);font-size:17px}
+  .drow.extra .v{color:var(--ink-3);font-size:13px;font-weight:400}
+
+  /* 热力图 */
+  .hm-label{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:6px}
+  .hm-label span{text-align:center;font-size:11px;color:var(--ink-3)}
+  .hm-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+  .hm-cell{aspect-ratio:1;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:11px;font-variant-numeric:tabular-nums;cursor:default}
+  .hm-cell.empty{background:transparent}
+  .hm-cell.none{background:var(--bg-soft);color:transparent}
+  .hm-cell.l0{background:var(--bg-soft);color:var(--ink-3)}
+  .hm-cell.l1{background:rgba(217,119,87,.18);color:var(--ink)}
+  .hm-cell.l2{background:rgba(217,119,87,.38);color:var(--ink)}
+  .hm-cell.l3{background:rgba(217,119,87,.62);color:#fff}
+  .hm-cell.l4{background:var(--accent);color:#fff}
+  .hm-total{margin-top:10px}
 
   /* ---------- 设置视图 ---------- */
   .settings-wrap{max-width:560px;margin:0 auto;padding:20px 20px 60px}
@@ -133,8 +170,7 @@
   .apply-all{margin-top:14px;background:transparent;border:1px solid var(--line-2);color:var(--ink-2);border-radius:99px;padding:8px 16px;font-size:13px;transition:.15s}
   .apply-all:hover{border-color:var(--ink-3);color:var(--ink)}
 
-  /* 本月记录 */
-  .hist-list{max-height:280px;overflow-y:auto;border:1px solid var(--line);border-radius:var(--radius-s)}
+  .hist-list{max-height:220px;overflow-y:auto;border:1px solid var(--line);border-radius:var(--radius-s);margin-top:12px}
   .hist-row{display:flex;justify-content:space-between;padding:9px 14px;font-size:13px;border-bottom:1px solid var(--line)}
   .hist-row:last-child{border-bottom:none}
   .hist-row .d{color:var(--ink-2);width:60px}
@@ -209,7 +245,10 @@
     <div class="stat"><div class="label">今日已工作</div><div class="stat-num serif" id="workedHours">0.0 小时</div></div>
   </section>
 
-  <button class="share-btn" id="shareBtn">分享今日战绩</button>
+  <div class="action-row">
+    <button class="ghost" id="btnDetail">查看收入明细</button>
+    <button class="share-btn" id="shareBtn">分享今日战绩</button>
+  </div>
 
   <footer>
     <button class="ghost" id="btnSettings">设置</button>
@@ -217,12 +256,26 @@
       <summary>计算说明</summary>
       <p>到手工资 = 税前月薪 − 个人五险一金 − 个人所得税（按累计预扣法、七级累进税率估算）。<br>
       时薪 = 平均月到手 ÷ 月计薪小时（21.75 个计薪日按你的每日作息均摊）。<br>
-      页面上「今日已赚」= 时薪 × 今日已工作秒数，每秒更新。<br>
-      各城市社保基数上下限为可查到的官方/权威数值，随年度调整，仅供参考。<br>
+      「今日已赚」= 时薪 × 今日已工作秒数，每秒更新。<br>
+      法定节假日按 2026 年国务院放假安排自动识别（含调休补班）。<br>
+      各城市社保基数上下限为官方/权威参考值，随年度调整。<br>
       所有数字为估算，实际以工资条为准。</p>
     </details>
   </footer>
 </main>
+
+<!-- 下班庆祝 -->
+<div class="celebration hidden" id="celebration">🎉 下班啦！<br>今天赚了 <b id="celebMoney">¥0.00</b></div>
+
+<!-- 收入明细弹层 -->
+<div class="overlay hidden" id="detailOverlay">
+  <div class="modal">
+    <button class="modal-close" id="detailClose">✕</button>
+    <h2 class="serif">本月工资明细</h2>
+    <p class="modal-sub">按你的设置估算，实际以工资条为准</p>
+    <div class="detail-rows" id="detailRows"></div>
+  </div>
+</div>
 
 <!-- ================= 设置视图 ================= -->
 <main id="view-settings" class="view hidden">
@@ -290,12 +343,14 @@
             <div class="field"><label for="dStart">上班时间</label><input type="time" id="dStart"></div>
             <div class="field"><label for="dEnd">下班时间</label><input type="time" id="dEnd"></div>
           </div>
-          <p class="help">周末默认休息。若某天不上班，把上下班时间设为相同（如 09:00–09:00）。</p>
+          <p class="help">周末默认休息。若某天不上班，把上下班时间设为相同（如 09:00–09:00）。法定节假日和调休会自动识别，无需手动设置。</p>
           <button type="button" class="apply-all" id="applyAll">把本周作息应用到所有工作日</button>
         </section>
 
         <section>
           <h2>本月记录（自动记录，仅存本机）</h2>
+          <div class="heatmap" id="heatmap"></div>
+          <p class="help hm-total" id="heatmapTotal"></p>
           <div class="hist-list" id="histList"></div>
         </section>
 
@@ -317,10 +372,25 @@
   var LS_KEY = 'work-money-settings-v2';
   var HIST_KEY = 'work-money-history-v1';
   var THEME_KEY = 'work-money-theme-v1';
-  var WORK_DAYS = 21.75;                       // 月计薪天数
-  var MONTH_BASIC = 5000;                      // 个税起征点（元/月）
+  var WORK_DAYS = 21.75;
+  var MONTH_BASIC = 5000;
 
-  // 个人所得税（累计预扣法，全年累计应纳税所得额的七级累进税率）
+  // 2026 年法定节假日（国务院办公厅国办发明电〔2025〕7号）
+  var HOLIDAYS = {
+    '2026': {
+      holiday: {
+        '01-01':'元旦','01-02':'元旦','01-03':'元旦',
+        '02-15':'春节','02-16':'春节','02-17':'春节','02-18':'春节','02-19':'春节','02-20':'春节','02-21':'春节','02-22':'春节','02-23':'春节',
+        '04-04':'清明节','04-05':'清明节','04-06':'清明节',
+        '05-01':'劳动节','05-02':'劳动节','05-03':'劳动节','05-04':'劳动节','05-05':'劳动节',
+        '06-19':'端午节','06-20':'端午节','06-21':'端午节',
+        '09-25':'中秋节','09-26':'中秋节','09-27':'中秋节',
+        '10-01':'国庆节','10-02':'国庆节','10-03':'国庆节','10-04':'国庆节','10-05':'国庆节','10-06':'国庆节','10-07':'国庆节'
+      },
+      workday: ['01-04','02-14','02-28','05-09','09-20','10-10']
+    }
+  };
+
   var BRACKETS = [
     { up: 36000,   rate: .03, qd: 0 },
     { up: 144000,  rate: .10, qd: 2520 },
@@ -331,7 +401,6 @@
     { up: Infinity, rate: .45, qd: 181920 }
   ];
 
-  // 城市：社保基数下限/上限（元/月，官方或权威值）+ 个人五险合计比例（估算）
   var CITIES = [
     { name: '北京', low: 7270,  high: 36348, si: 10.5 },
     { name: '上海', low: 7384,  high: 36921, si: 10.5 },
@@ -348,7 +417,6 @@
     { name: '其他', low: 6000,  high: 20000, si: 10.5 }
   ];
 
-  // 趣味换算档位
   var FUN_ITEMS = [
     { name: '杯咖啡',   price: 25 },
     { name: '杯奶茶',   price: 18 },
@@ -360,9 +428,11 @@
 
   var S = null;
   var rate = 0;
-  var hist = {};                 // 每日记录 { '2026-08-27': 1013.04 }
+  var hist = {};
   var lastMoney = 0;
   var lastHistTs = 0;
+  var prevStatus = null;
+  var celebTimer = null;
 
   /* ---------- 工具函数 ---------- */
   function toMin(t){
@@ -393,6 +463,9 @@
   function todayKey(){
     var d = new Date();
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  function dateKeyMMDD(now){
+    return String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
   }
 
   /* ---------- 主题 ---------- */
@@ -439,10 +512,14 @@
     var c = CITIES[+s.city] || CITIES[CITIES.length - 1];
     var base = s.baseMode === 'min' ? c.low : clamp(gross, c.low, c.high);
 
-    var siFund = base * (c.si / 100 + s.fundP / 100);
+    var pension = base * .08;
+    var medical = base * .02;
+    var unemp = base * ((c.si - 10) / 100);
+    var fund = base * (s.fundP / 100);
+    var siFund = pension + medical + unemp + fund;
     var taxableMonthly = gross - MONTH_BASIC - siFund - (s.deduct || 0);
 
-    var prev = 0, sum = 0, months = [];
+    var prev = 0, sum = 0, months = [], taxes = [];
     for (var m = 1; m <= 12; m++){
       var cum = Math.max(0, taxableMonthly * m);
       var tax = yearTax(cum);
@@ -450,6 +527,7 @@
       prev = tax;
       var th = gross - siFund - monthTax;
       months.push(Math.max(0, th));
+      taxes.push(monthTax);
       sum += th;
     }
     var avgTH = sum / 12;
@@ -460,16 +538,34 @@
 
     rate = monthSec > 0 ? avgTH / monthSec : 0;
 
-    return { months: months, avgTH: avgTH, monthSec: monthSec };
+    return {
+      months: months, taxes: taxes, avgTH: avgTH, monthSec: monthSec,
+      breakdown: {
+        gross: gross, base: base, low: c.low, high: c.high, city: c.name, si: c.si,
+        fundP: s.fundP, deduct: s.deduct || 0,
+        pension: pension, medical: medical, unemp: unemp, fund: fund, siFund: siFund,
+        taxableMonthly: taxableMonthly
+      }
+    };
   }
 
   function dayInfo(now){
     var d = now.getDay();
-    if (d === 0 || d === 6) return { status: 'weekend', worked: 0, total: 0 };
-    var dayMin = dayPaidMin(d);
+    var key = dateKeyMMDD(now);
+    var yd = HOLIDAYS[String(now.getFullYear())];
+
+    if (yd && yd.holiday[key]){
+      return { status: 'holiday', label: yd.holiday[key], worked: 0, total: 0 };
+    }
+    var isWeekend = (d === 0 || d === 6);
+    var isMakeup = !!(yd && yd.workday.indexOf(key) >= 0);
+    if (isWeekend && !isMakeup) return { status: 'weekend', worked: 0, total: 0 };
+
+    var schedDay = isWeekend ? 5 : d;   // 调休周末按周五作息
+    var dayMin = dayPaidMin(schedDay);
     if (dayMin === 0) return { status: 'off', worked: 0, total: 0 };
 
-    var sd = S.schedule[d];
+    var sd = S.schedule[schedDay];
     var st = toMin(sd.start), en = toMin(sd.end);
     var cur = now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
 
@@ -478,7 +574,7 @@
     else if (cur >= en){ worked = dayMin; status = 'after'; }
     else               { worked = cur - st; status = 'working'; }
 
-    return { status: status, worked: clamp(worked, 0, dayMin), total: dayMin };
+    return { status: status, worked: clamp(worked, 0, dayMin), total: dayMin, makeup: isMakeup };
   }
 
   function monthPaidSec(now){
@@ -486,12 +582,13 @@
     var daysInMonth = new Date(y, m + 1, 0).getDate();
     var sec = 0;
     for (var dd = 1; dd <= daysInMonth; dd++){
-      var wd = new Date(y, m, dd).getDay();
-      if (wd === 0 || wd === 6) continue;
+      var info = dayInfo(new Date(y, m, dd, 12, 0, 0));   // 用当天中午判断类型
+      if (info.status === 'weekend' || info.status === 'holiday' || info.status === 'off') continue;
       if (dd === now.getDate()){
         sec += dayInfo(now).worked * 60;
       } else {
-        sec += dayPaidMin(wd) * 60;
+        var schedDay = info.makeup ? 5 : (new Date(y, m, dd).getDay());
+        sec += dayPaidMin(schedDay) * 60;
       }
     }
     return sec;
@@ -506,20 +603,17 @@
     var daysThisMonth = new Date(y, m, 0).getDate();
     var pd = Math.min(p, daysThisMonth);
 
-    var html;
     if (d === pd){
-      html = '<span class="chip hot">🎉 <b>今天发薪日！</b></span>';
-    } else {
-      var days;
-      if (d < pd){ days = pd - d; }
-      else {
-        var nm = m === 12 ? 1 : m + 1, ny = m === 12 ? y + 1 : y;
-        var ndays = new Date(ny, nm, 0).getDate();
-        days = (daysThisMonth - d) + Math.min(p, ndays);
-      }
-      html = '<span class="chip">发薪日还有 <b>' + days + '</b> 天</span>';
+      return '<span class="chip hot">🎉 <b>今天发薪日！</b></span>';
     }
-    return html;
+    var days;
+    if (d < pd){ days = pd - d; }
+    else {
+      var nm = m === 12 ? 1 : m + 1, ny = m === 12 ? y + 1 : y;
+      var ndays = new Date(ny, nm, 0).getDate();
+      days = (daysThisMonth - d) + Math.min(p, ndays);
+    }
+    return '<span class="chip">发薪日还有 <b>' + days + '</b> 天</span>';
   }
 
   function funText(money){
@@ -541,7 +635,7 @@
   function render(){
     var now = new Date();
     var info = dayInfo(now);
-    var worked = info.worked, total = info.total;   // 分钟
+    var worked = info.worked, total = info.total;
     var money = rate * worked * 60;
     lastMoney = money;
 
@@ -554,15 +648,16 @@
     var status = '', sub = '';
     switch (info.status){
       case 'working':
-        status = '工作中 · 每秒都在进账';
+        status = '工作中 · 每秒都在进账' + (info.makeup ? '（调休上班）' : '');
         dot.classList.add('live');
         sub = '距离下班还有 ' + fmtDur((total - worked) * 60);
         break;
       case 'before': {
-        var sd = S.schedule[now.getDay()];
+        var schedDay = info.makeup ? 5 : now.getDay();
+        var sd = S.schedule[schedDay];
         var cur = now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
         var startRem = Math.max(0, (toMin(sd.start) - cur)) * 60;
-        status = '还没上班';
+        status = '还没上班' + (info.makeup ? '（调休上班）' : '');
         sub = '距离上班还有 ' + fmtDur(startRem) + ' · 今天预计赚 ¥' + fmt(rate * total * 60);
         break;
       }
@@ -574,20 +669,37 @@
         status = '今天是休息日';
         sub = '好好休息，钱的事明天再说';
         break;
+      case 'holiday':
+        status = '放假 · ' + info.label;
+        sub = '假期愉快，好好休息 🎉';
+        break;
       case 'off':
         status = '今天休息';
         sub = '今天不上班，好好放松';
         break;
     }
+
+    // 下班庆祝
+    if (prevStatus === 'working' && info.status === 'after'){
+      $('celebMoney').textContent = '¥ ' + fmt(money);
+      var ce = $('celebration');
+      ce.classList.remove('hidden');
+      ce.classList.add('show');
+      clearTimeout(celebTimer);
+      celebTimer = setTimeout(function(){
+        ce.classList.add('hidden');
+        ce.classList.remove('show');
+      }, 3000);
+    }
+    prevStatus = info.status;
+
     $('statusText').textContent = status;
     updateOdometer(fmt(money));
     $('moneyText').setAttribute('aria-label', '今日已赚 ¥' + fmt(money));
     $('tickText').textContent = '本秒 +¥' + rate.toFixed(4) + ' · 时薪 ¥' + fmt(rate * 3600) + (total > 0 ? ' · 日薪 ¥' + fmt(rate * total * 60) : '');
 
-    // 发薪日 chip + 趣味换算
     $('metaLine').innerHTML = paydayChip(now);
-    var fun = funText(money);
-    $('funLine').textContent = fun;
+    $('funLine').textContent = funText(money);
 
     var pct = total > 0 ? Math.min(100, worked / total * 100) : 0;
     $('progressFill').style.width = pct + '%';
@@ -595,9 +707,9 @@
     $('progressSub').textContent = sub;
 
     var monthEarned = rate * monthPaidSec(now);
-    var monthTakehome = compute(S).months[now.getMonth()];
+    var c = compute(S);
+    var monthTakehome = c.months[now.getMonth()];
 
-    // 本月目标进度
     var goal = +S.goal || 0;
     if (goal > 0){
       $('goalCard').classList.remove('hidden');
@@ -684,6 +796,47 @@
     }
   }
 
+  /* ---------- 收入明细 ---------- */
+  function renderDetail(){
+    var c = compute(S);
+    var m = new Date().getMonth();
+    var b = c.breakdown;
+    var tax = c.taxes[m];
+    var th = c.months[m];
+    var siFund = b.pension + b.medical + b.unemp + b.fund;
+    var rows = [
+      ['税前月薪', '¥ ' + fmt(b.gross)],
+      ['社保基数', fmt(b.base) + ' 元（' + b.city + ' ' + fmt(b.low) + '~' + fmt(b.high) + '）', 'extra'],
+      ['－ 养老（8%）', '− ¥ ' + fmt(b.pension), 'minus'],
+      ['－ 医疗（2%）', '− ¥ ' + fmt(b.medical), 'minus'],
+      ['－ 失业（' + (b.si - 10).toFixed(1) + '%）', '− ¥ ' + fmt(b.unemp), 'minus'],
+      ['－ 公积金（' + b.fundP + '%）', '− ¥ ' + fmt(b.fund), 'minus'],
+      ['－ 专项附加扣除', '− ¥ ' + fmt(b.deduct), 'minus'],
+      ['应纳税所得额', '¥ ' + fmt(b.taxableMonthly)],
+      ['－ 本月个税', '− ¥ ' + fmt(tax), 'minus'],
+      ['＝ 本月到手', '¥ ' + fmt(th), 'total'],
+      ['时薪 / 日薪', '¥ ' + fmt(rate * 3600) + ' / ¥ ' + fmt(rate * ((WORK_DAYS / 5) * 5 * 60) / (WORK_DAYS / 5) * 60 / 3600 * 3600), 'extra']
+    ];
+    // 简化日薪行
+    rows[10] = ['时薪 / 日薪', '¥ ' + fmt(rate * 3600) + ' / ¥ ' + fmt(rate * 8 * 3600), 'extra'];
+    var html = '';
+    rows.forEach(function(r){
+      html += '<div class="drow ' + (r[2] || '') + '"><span class="k">' + r[0] + '</span><span class="v">' + r[1] + '</span></div>';
+    });
+    $('detailRows').innerHTML = html;
+  }
+  $('btnDetail').addEventListener('click', function(){
+    if (!S) return;
+    renderDetail();
+    $('detailOverlay').classList.remove('hidden');
+  });
+  $('detailClose').addEventListener('click', function(){
+    $('detailOverlay').classList.add('hidden');
+  });
+  $('detailOverlay').addEventListener('click', function(e){
+    if (e.target === this) this.classList.add('hidden');
+  });
+
   /* ---------- 分享卡片 ---------- */
   function shareCard(){
     var now = new Date();
@@ -720,20 +873,18 @@
     x.textAlign = 'center';
     x.fillText(now.getFullYear() + '年' + (now.getMonth() + 1) + '月' + now.getDate() + '日 · 星期' + week[now.getDay()], 375, 345);
 
-    // 分隔线
     x.strokeStyle = line;
     x.lineWidth = 2;
     x.beginPath();
     x.moveTo(120, 400); x.lineTo(630, 400);
     x.stroke();
 
-    // 信息卡
+    var workedH = dayInfo(now).worked / 60;
     var rows = [
       ['时薪', '¥ ' + fmt(rate * 3600)],
-      ['日薪', '¥ ' + fmt(rate * (S && dayPaidMin(new Date().getDay()) || 8) * 60)],
-      ['已工作', dayInfo(now).worked / 60 >= 0.1 ? (dayInfo(now).worked / 60).toFixed(1) + ' 小时' : '—']
+      ['日薪', '¥ ' + fmt(rate * 8 * 3600)],
+      ['已工作', workedH >= 0.1 ? workedH.toFixed(1) + ' 小时' : '—']
     ];
-    var rowH = 300;
     var y0 = 470;
     rows.forEach(function(r, i){
       var cx = 140 + i * 235;
@@ -746,21 +897,18 @@
       text(r[1], 34, y0 + 66, ink, 500);
     });
 
-    // 趣味
     var fun = funText(lastMoney) || '今天也在努力赚钱 💪';
     x.fillStyle = ink;
     x.font = '400 30px -apple-system, "PingFang SC", sans-serif';
     x.textAlign = 'center';
     x.fillText(fun, 375, y0 + 190);
 
-    // 底部
     x.strokeStyle = line;
     x.beginPath();
     x.moveTo(120, 950); x.lineTo(630, 950);
     x.stroke();
     text('上班赚钱计时器 · 今日已赚', 24, 1010, sub, 500);
 
-    // 输出
     if (navigator.canShare){
       cv.toBlob(function(blob){
         var file = new File([blob], '今日已赚-' + todayKey() + '.png', { type: 'image/png' });
@@ -871,6 +1019,41 @@
     setTimeout(function(){ btn.textContent = old; }, 1200);
   });
 
+  /* ---------- 热力图 & 历史 ---------- */
+  function renderHeatmap(){
+    var el = $('heatmap');
+    if (!el) return;
+    var now = new Date(), y = now.getFullYear(), m = now.getMonth() + 1;
+    var days = new Date(y, m, 0).getDate();
+    var firstDow = new Date(y, m - 1, 1).getDay();
+    var colOf = function(dow){ return (dow + 6) % 7; };   // 周一开始
+    var labels = '一二三四五六日';
+
+    var html = '<div class="hm-label">';
+    for (var i = 0; i < 7; i++) html += '<span>' + labels[i] + '</span>';
+    html += '</div>';
+
+    var cells = [];
+    for (var p = 0; p < colOf(firstDow); p++) cells.push(null);
+    for (var d = 1; d <= days; d++) cells.push(d);
+    while (cells.length % 7) cells.push(null);
+
+    var total = 0, count = 0, prefix = y + '-' + String(m).padStart(2, '0') + '-';
+    html += '<div class="hm-grid">';
+    cells.forEach(function(day){
+      if (day === null){ html += '<span class="hm-cell empty"></span>'; return; }
+      var k = prefix + String(day).padStart(2, '0');
+      var amt = hist[k];
+      if (amt === undefined || amt === null){ html += '<span class="hm-cell none" title="' + m + '月' + day + '日：未记录"></span>'; return; }
+      total += amt; count++;
+      var lv = amt <= 0 ? 0 : amt < 300 ? 1 : amt < 800 ? 2 : amt < 1500 ? 3 : 4;
+      html += '<span class="hm-cell l' + lv + '" title="' + m + '月' + day + '日：¥' + fmt(amt) + '">' + day + '</span>';
+    });
+    html += '</div>';
+    el.innerHTML = html;
+    $('heatmapTotal').textContent = count > 0 ? '本月合计：¥' + fmt(total) + ' · 已记录 ' + count + ' 天' : '本月还没有记录，打开主页面后会自动记录每天的收入';
+  }
+
   function renderHistory(){
     var el = $('histList');
     if (!el) return;
@@ -883,7 +1066,7 @@
       if (amt !== undefined && amt !== null){
         any = true;
         cum += amt;
-        html += '<div class="hist-row"><span class="d">' + d + '日</span><span class="a">¥' + fmt(amt) + '</span><span class="c">累计 ¥' + fmt(cum) + '</span></div>';
+        html += '<div class="hist-row"><span class="d">' + m + '月' + d + '日</span><span class="a">¥' + fmt(amt) + '</span><span class="c">累计 ¥' + fmt(cum) + '</span></div>';
       }
     }
     el.innerHTML = any ? html : '<div class="hist-row"><span class="d" style="color:var(--ink-3)">暂无记录</span></div>';
@@ -909,6 +1092,7 @@
     });
     $('formError').style.display = 'none';
     renderCityInfo();
+    renderHeatmap();
     renderHistory();
   }
 
@@ -979,6 +1163,10 @@
       setInterval(render, 1000);
     } else {
       showSettings();
+    }
+    // PWA：Service Worker（仅 https 环境生效，本地 file:// 自动跳过）
+    if ('serviceWorker' in navigator && location.protocol === 'https:'){
+      navigator.serviceWorker.register('./sw.js').catch(function(){});
     }
   }
   init();
