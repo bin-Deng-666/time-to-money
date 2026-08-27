@@ -109,6 +109,9 @@
   @keyframes celebPop{0%{opacity:0;transform:translate(-50%,-50%) scale(.6)}100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}
   .celebration b{color:var(--accent);font-size:28px;font-variant-numeric:tabular-nums}
 
+  /* 轻提示 */
+  .toast{position:fixed;left:50%;bottom:64px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 22px;border-radius:99px;font-size:13px;z-index:101;box-shadow:0 8px 24px rgba(0,0,0,.2);white-space:nowrap;animation:fadeUp .3s ease}
+
   /* 明细弹层 */
   .overlay{position:fixed;inset:0;background:rgba(28,25,23,.45);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px}
   .modal{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:28px 26px;width:100%;max-width:420px;max-height:86vh;overflow-y:auto;position:relative;box-shadow:0 18px 60px rgba(0,0,0,.25);animation:fadeUp .3s ease}
@@ -266,6 +269,9 @@
 
 <!-- 下班庆祝 -->
 <div class="celebration hidden" id="celebration">🎉 下班啦！<br>今天赚了 <b id="celebMoney">¥0.00</b></div>
+
+<!-- 轻提示 -->
+<div class="toast hidden" id="toast"></div>
 
 <!-- 收入明细弹层 -->
 <div class="overlay hidden" id="detailOverlay">
@@ -838,7 +844,19 @@
   });
 
   /* ---------- 分享卡片 ---------- */
+  var toastTimer = null;
+  function showToast(msg){
+    var t = $('toast');
+    t.textContent = msg;
+    t.classList.remove('hidden');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ t.classList.add('hidden'); }, 2400);
+  }
+  function isMobile(){
+    return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+  }
   function shareCard(){
+    showToast('正在生成卡片…');
     var now = new Date();
     var week = ['日', '一', '二', '三', '四', '五', '六'];
     var dark = document.documentElement.getAttribute('data-theme') === 'dark';
@@ -853,10 +871,20 @@
     cv.width = 750; cv.height = 1080;
     var x = cv.getContext('2d');
 
-    x.fillStyle = bg;
+    // 背景渐变
+    var g = x.createLinearGradient(0, 0, 0, 1080);
+    g.addColorStop(0, dark ? '#262320' : '#FCFBF6');
+    g.addColorStop(1, bg);
+    x.fillStyle = g;
     x.fillRect(0, 0, 750, 1080);
+    // 顶部装饰条
     x.fillStyle = accent;
-    x.fillRect(0, 0, 750, 8);
+    x.fillRect(0, 0, 750, 10);
+    // 标题前的装饰圆点
+    x.fillStyle = accent;
+    x.beginPath();
+    x.arc(375, 92, 7, 0, Math.PI * 2);
+    x.fill();
 
     function text(str, size, y, color, weight){
       x.fillStyle = color || ink;
@@ -865,8 +893,8 @@
       x.fillText(str, 375, y);
     }
 
-    text('今日已赚', 30, 130, sub, 600);
-    text('¥ ' + fmt(lastMoney, 2), 104, 275, ink, 400);
+    text('今日已赚', 30, 138, sub, 600);
+    text('¥ ' + fmt(lastMoney, 2), 104, 285, ink, 500);
 
     x.fillStyle = sub;
     x.font = '400 26px -apple-system, "PingFang SC", sans-serif';
@@ -911,9 +939,11 @@
 
     if (navigator.canShare){
       cv.toBlob(function(blob){
+        if (!blob){ showToast('生成失败，请重试'); return; }
         var file = new File([blob], '今日已赚-' + todayKey() + '.png', { type: 'image/png' });
-        if (navigator.canShare({ files: [file] })){
-          navigator.share({ files: [file], title: '今日已赚' }).catch(function(){});
+        // 移动端优先走系统分享；桌面端或分享失败时直接下载
+        if (isMobile() && navigator.canShare({ files: [file] })){
+          navigator.share({ files: [file], title: '今日已赚' }).catch(function(){ downloadCanvas(cv); });
         } else {
           downloadCanvas(cv);
         }
@@ -929,6 +959,7 @@
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
+    showToast('卡片已生成，已保存到下载目录');
   }
   function roundRect(x, px, py, w, h, r){
     x.beginPath();
