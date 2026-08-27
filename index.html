@@ -173,6 +173,15 @@
   .apply-all{margin-top:14px;background:transparent;border:1px solid var(--line-2);color:var(--ink-2);border-radius:99px;padding:8px 16px;font-size:13px;transition:.15s}
   .apply-all:hover{border-color:var(--ink-3);color:var(--ink)}
 
+  /* 更多设置（可折叠） */
+  .advanced{margin-top:30px;border-top:1px solid var(--line)}
+  .advanced>summary{cursor:pointer;font-size:13.5px;color:var(--ink-2);font-weight:600;padding:14px 0 4px;list-style:none;user-select:none;outline:none;transition:color .15s}
+  .advanced>summary::-webkit-details-marker{display:none}
+  .advanced>summary:hover{color:var(--accent)}
+  .advanced>summary::before{content:'＋ ';color:var(--accent);font-weight:600}
+  .advanced[open]>summary::before{content:'－ '}
+  .advanced[open] section{border-top:1px solid var(--line);margin-top:20px;padding-top:20px}
+
   .hist-list{max-height:220px;overflow-y:auto;border:1px solid var(--line);border-radius:var(--radius-s);margin-top:12px}
   .hist-row{display:flex;justify-content:space-between;padding:9px 14px;font-size:13px;border-bottom:1px solid var(--line)}
   .hist-row:last-child{border-bottom:none}
@@ -292,66 +301,72 @@
 
       <form id="settingsForm" novalidate>
         <section>
-          <h2>薪资</h2>
+          <h2>基本设置</h2>
           <div class="field">
             <label for="gross">税前月薪（元）</label>
             <input type="number" id="gross" min="0" step="100" placeholder="例如 15000">
           </div>
-          <div class="field">
-            <label for="deduct">专项附加扣除（元/月）</label>
-            <input type="number" id="deduct" min="0" step="100" value="0">
-            <p class="help">租房 / 房贷 / 赡养老人 / 子女教育等每月可抵税的金额，没有就填 0。</p>
-          </div>
           <div class="field-row">
-            <div class="field">
-              <label for="goal">本月到手目标（元，可选）</label>
-              <input type="number" id="goal" min="0" step="100" placeholder="例如 25000">
-              <p class="help">主页面会显示目标进度条，填 0 关闭。</p>
-            </div>
-            <div class="field">
-              <label for="payday">发薪日（每月几号，可选）</label>
-              <input type="number" id="payday" min="0" max="31" step="1" placeholder="例如 10">
-              <p class="help">主页面显示发薪倒计时，填 0 关闭。</p>
-            </div>
+            <div class="field"><label for="mainStart">上班时间</label><input type="time" id="mainStart" value="09:00"></div>
+            <div class="field"><label for="mainEnd">下班时间</label><input type="time" id="mainEnd" value="18:00"></div>
           </div>
-        </section>
-
-        <section>
-          <h2>城市与社保</h2>
+          <p class="help">默认周一到周五都是这个作息。想某天不同，展开下方「更多设置」。</p>
           <div class="field">
             <label for="city">所在城市</label>
             <select id="city"></select>
           </div>
-          <div class="city-info" id="cityInfo"></div>
-          <div class="field">
-            <label>社保基数</label>
+        </section>
+
+        <details class="advanced">
+          <summary>更多设置（公积金 / 社保 / 目标 / 每日作息，均可选）</summary>
+          <section>
+            <h2>公积金</h2>
+            <div class="field">
+              <label for="fundP">个人比例（%）</label>
+              <input type="number" id="fundP" min="5" max="12" step="0.5">
+            </div>
+            <p class="help">通常 5%～12%，个人缴存部分会存进你的公积金账户。</p>
+          </section>
+          <section>
+            <h2>社保基数</h2>
+            <div class="city-info" id="cityInfo"></div>
             <div class="seg">
               <label><input type="radio" name="baseMode" value="actual" checked> 按实际工资缴</label>
               <label><input type="radio" name="baseMode" value="min"> 按最低基数缴</label>
             </div>
             <p class="help" id="baseHelp">按实际工资缴：基数 = 你的月薪（在上下限之间）。选「最低基数」则按该城市下限缴纳，到手会多，但公司为你缴得少。</p>
-          </div>
-        </section>
-
-        <section>
-          <h2>公积金</h2>
-          <div class="field">
-            <label for="fundP">个人比例（%）</label>
-            <input type="number" id="fundP" min="5" max="12" step="0.5">
-          </div>
-          <p class="help">公积金比例通常为 5%～12%，个人缴存部分会存进你的公积金账户。</p>
-        </section>
-
-        <section>
-          <h2>作息（每个工作日可不同）</h2>
-          <div class="daytabs" id="dayTabs"></div>
-          <div class="field-row">
-            <div class="field"><label for="dStart">上班时间</label><input type="time" id="dStart"></div>
-            <div class="field"><label for="dEnd">下班时间</label><input type="time" id="dEnd"></div>
-          </div>
-          <p class="help">周末默认休息。若某天不上班，把上下班时间设为相同（如 09:00–09:00）。法定节假日和调休会自动识别，无需手动设置。</p>
-          <button type="button" class="apply-all" id="applyAll">把本周作息应用到所有工作日</button>
-        </section>
+          </section>
+          <section>
+            <h2>专项附加扣除</h2>
+            <div class="field">
+              <label for="deduct">每月抵税金额（元）</label>
+              <input type="number" id="deduct" min="0" step="100" value="0">
+            </div>
+            <p class="help">租房 / 房贷 / 赡养老人 / 子女教育等，没有就填 0。</p>
+          </section>
+          <section>
+            <h2>目标与发薪日（可选）</h2>
+            <div class="field-row">
+              <div class="field">
+                <label for="goal">本月到手目标（元）</label>
+                <input type="number" id="goal" min="0" step="100" placeholder="例如 25000">
+              </div>
+              <div class="field">
+                <label for="payday">发薪日（每月几号）</label>
+                <input type="number" id="payday" min="0" max="31" step="1" placeholder="例如 10">
+              </div>
+            </div>
+          </section>
+          <section>
+            <h2>每日不同作息（可选）</h2>
+            <div class="daytabs" id="dayTabs"></div>
+            <div class="field-row">
+              <div class="field"><label for="dStart">上班时间</label><input type="time" id="dStart"></div>
+              <div class="field"><label for="dEnd">下班时间</label><input type="time" id="dEnd"></div>
+            </div>
+            <button type="button" class="apply-all" id="applyAll">把本周作息应用到所有工作日</button>
+          </section>
+        </details>
 
         <section>
           <h2>本月记录（自动记录，仅存本机）</h2>
@@ -1037,6 +1052,13 @@
       b.classList.toggle('active', +b.dataset.day === d);
     });
   }
+  // 统一作息：修改主表单 = 应用到所有工作日
+  function syncAllFromMain(){
+    var v = { start: $('mainStart').value, end: $('mainEnd').value };
+    for (var d = 1; d <= 5; d++) schedDraft[d] = { start: v.start, end: v.end };
+  }
+  $('mainStart').addEventListener('change', syncAllFromMain);
+  $('mainEnd').addEventListener('change', syncAllFromMain);
   tabsEl.addEventListener('click', function(e){
     var b = e.target.closest('.daytab');
     if (b) selectDay(+b.dataset.day);
@@ -1114,6 +1136,8 @@
     $('fundP').value = s.fundP;
     schedDraft = {};
     for (var d = 1; d <= 5; d++) schedDraft[d] = s.schedule[d] || { start: '09:00', end: '18:00' };
+    $('mainStart').value = schedDraft[1].start;
+    $('mainEnd').value = schedDraft[1].end;
     curDay = 1;
     var sd = schedDraft[1];
     $('dStart').value = sd.start;
@@ -1136,6 +1160,10 @@
   $('settingsForm').addEventListener('submit', function(e){
     e.preventDefault();
     schedDraft[curDay] = { start: $('dStart').value, end: $('dEnd').value };
+    // 若主表单作息与周一不一致，视为用户想统一作息，同步到所有天
+    if ($('mainStart').value !== schedDraft[1].start || $('mainEnd').value !== schedDraft[1].end){
+      syncAllFromMain();
+    }
     var s = {
       gross: +$('gross').value,
       deduct: +$('deduct').value || 0,
