@@ -24,7 +24,7 @@
   }
   [data-theme="dark"]{
     --bg:#191817; --bg-soft:#232220; --card:#232220;
-    --ink:#ECE9E2; --ink-2:#A8A39B; --ink-3:#6F6A62;
+    --ink:#ECE9E2; --ink-2:#A8A39B; --ink-3:#7C776F;
     --line:#2E2C28; --line-2:#3B3833;
     --accent:#E08A67; --accent-deep:#D97757;
     --success:#7FB069;
@@ -64,7 +64,7 @@
   .hero{text-align:center;padding:30px 0 20px}
   .label{font-size:12px;letter-spacing:.16em;color:var(--ink-3);font-weight:600;text-transform:uppercase}
   .money{display:flex;align-items:center;justify-content:center;font-size:clamp(42px,9.5vw,72px);line-height:1;font-weight:400;letter-spacing:-.01em;font-variant-numeric:tabular-nums;font-feature-settings:'tnum' 1;margin-top:14px}
-  .tick{margin-top:15px;font-size:14px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+  .tick{margin-top:15px;font-size:14px;color:var(--ink-3);font-variant-numeric:tabular-nums;display:flex;justify-content:center;flex-wrap:wrap;gap:2px 8px;line-height:1.6}
 
   .od-cur{margin-right:.05em;font-weight:500}
   .od-d{display:inline-block;width:.62em;height:1em;overflow:hidden;text-align:center}
@@ -139,6 +139,7 @@
   .hm-cell.l2{background:rgba(217,119,87,.38);color:var(--ink)}
   .hm-cell.l3{background:rgba(217,119,87,.62);color:#fff}
   .hm-cell.l4{background:var(--accent);color:#fff}
+  .hm-cell.today{outline:2px solid var(--accent);outline-offset:1px}
   .hm-total{margin-top:10px}
 
   /* ---------- 设置视图 ---------- */
@@ -377,7 +378,7 @@
 
         <div class="error" id="formError"></div>
         <div class="actions">
-          <button type="submit" class="primary">保存并开始</button>
+          <button type="submit" class="primary" id="submitBtn">开始使用</button>
         </div>
         <div class="reset-link"><a id="resetLink">清空所有数据</a></div>
       </form>
@@ -449,6 +450,7 @@
 
   var S = null;
   var rate = 0;
+  var computeCache = null;
   var hist = {};
   var lastMoney = 0;
   var lastHistTs = 0;
@@ -568,6 +570,11 @@
         taxableMonthly: taxableMonthly
       }
     };
+  }
+  // 计算缓存：设置不变时复用，避免每秒重复计算
+  function getCompute(){
+    if (!computeCache) computeCache = compute(S);
+    return computeCache;
   }
 
   function dayInfo(now){
@@ -728,7 +735,7 @@
     $('progressSub').textContent = sub;
 
     var monthEarned = rate * monthPaidSec(now);
-    var c = compute(S);
+    var c = getCompute();
     var monthTakehome = c.months[now.getMonth()];
 
     var goal = +S.goal || 0;
@@ -819,12 +826,14 @@
 
   /* ---------- 收入明细 ---------- */
   function renderDetail(){
-    var c = compute(S);
+    var c = getCompute();
     var m = new Date().getMonth();
     var b = c.breakdown;
     var tax = c.taxes[m];
     var th = c.months[m];
-    var siFund = b.pension + b.medical + b.unemp + b.fund;
+    var weekSec = 0;
+    for (var d = 1; d <= 5; d++) weekSec += dayPaidMin(d) * 60;
+    var daySec = weekSec / 5;
     var rows = [
       ['税前月薪', '¥ ' + fmt(b.gross)],
       ['社保基数', fmt(b.base) + ' 元（' + b.city + ' ' + fmt(b.low) + '~' + fmt(b.high) + '）', 'extra'],
@@ -836,10 +845,8 @@
       ['应纳税所得额', '¥ ' + fmt(b.taxableMonthly)],
       ['－ 本月个税', '− ¥ ' + fmt(tax), 'minus'],
       ['＝ 本月到手', '¥ ' + fmt(th), 'total'],
-      ['时薪 / 日薪', '¥ ' + fmt(rate * 3600) + ' / ¥ ' + fmt(rate * ((WORK_DAYS / 5) * 5 * 60) / (WORK_DAYS / 5) * 60 / 3600 * 3600), 'extra']
+      ['时薪 / 日薪', '¥ ' + fmt(rate * 3600) + ' / ¥ ' + fmt(rate * daySec), 'extra']
     ];
-    // 简化日薪行
-    rows[10] = ['时薪 / 日薪', '¥ ' + fmt(rate * 3600) + ' / ¥ ' + fmt(rate * 8 * 3600), 'extra'];
     var html = '';
     rows.forEach(function(r){
       html += '<div class="drow ' + (r[2] || '') + '"><span class="k">' + r[0] + '</span><span class="v">' + r[1] + '</span></div>';
@@ -923,9 +930,12 @@
     x.stroke();
 
     var workedH = dayInfo(now).worked / 60;
+    var weekSec = 0;
+    for (var d = 1; d <= 5; d++) weekSec += dayPaidMin(d) * 60;
+    var daySec = weekSec / 5;
     var rows = [
       ['时薪', '¥ ' + fmt(rate * 3600)],
-      ['日薪', '¥ ' + fmt(rate * 8 * 3600)],
+      ['日薪', '¥ ' + fmt(rate * daySec)],
       ['已工作', workedH >= 0.1 ? workedH.toFixed(1) + ' 小时' : '—']
     ];
     var y0 = 470;
@@ -1100,7 +1110,8 @@
       if (amt === undefined || amt === null){ html += '<span class="hm-cell none" title="' + m + '月' + day + '日：未记录"></span>'; return; }
       total += amt; count++;
       var lv = amt <= 0 ? 0 : amt < 300 ? 1 : amt < 800 ? 2 : amt < 1500 ? 3 : 4;
-      html += '<span class="hm-cell l' + lv + '" title="' + m + '月' + day + '日：¥' + fmt(amt) + '">' + day + '</span>';
+      var todayCls = day === now.getDate() ? ' today' : '';
+      html += '<span class="hm-cell l' + lv + todayCls + '" title="' + m + '月' + day + '日：¥' + fmt(amt) + '">' + day + '</span>';
     });
     html += '</div>';
     el.innerHTML = html;
@@ -1127,6 +1138,7 @@
 
   function fillForm(){
     var s = S || defaults();
+    $('submitBtn').textContent = S ? '保存修改' : '开始使用';
     $('gross').value = s.gross || '';
     $('deduct').value = s.deduct;
     $('goal').value = s.goal || '';
@@ -1192,9 +1204,11 @@
 
     S = s;
     try { localStorage.setItem(LS_KEY, JSON.stringify(s)); } catch (err) {}
+    computeCache = null;
     compute(S);
     showDash();
     render();
+    setTimeout(function(){ showToast('设置完成，开始赚钱吧！'); }, 350);
   });
 
   $('resetLink').addEventListener('click', function(){
@@ -1216,6 +1230,7 @@
     loadHist();
     initTheme();
     if (S && S.schedule){
+      computeCache = null;
       compute(S);
       showDash();
       render();

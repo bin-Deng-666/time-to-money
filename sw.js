@@ -1,5 +1,5 @@
-// 今日已赚 - Service Worker（离线缓存）
-var CACHE = 'today-earning-v1';
+// 今日已赚 - Service Worker（离线兜底 + 网络优先，保证更新及时）
+var CACHE = 'today-earning-v2';
 var ASSETS = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', function (e) {
@@ -20,18 +20,18 @@ self.addEventListener('activate', function (e) {
   );
 });
 
-// 缓存优先，后台更新
+// 网络优先：在线时总是拿最新版本，离线时回退到缓存
 self.addEventListener('fetch', function (e) {
   if (e.request.method !== 'GET') return;
   e.respondWith(
-    caches.open(CACHE).then(function (c) {
-      return c.match(e.request).then(function (cached) {
-        var net = fetch(e.request).then(function (res) {
-          if (res && res.ok) c.put(e.request, res.clone());
-          return res;
-        }).catch(function () { return cached; });
-        return cached || net;
-      });
+    fetch(e.request).then(function (res) {
+      if (res && res.ok) {
+        var cp = res.clone();
+        caches.open(CACHE).then(function (c) { c.put(e.request, cp); });
+      }
+      return res;
+    }).catch(function () {
+      return caches.match(e.request);
     })
   );
 });
